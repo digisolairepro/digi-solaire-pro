@@ -3,8 +3,10 @@
 import { useState } from "react";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
+import { useLocalStorage } from "../../hooks/useLocalStorage";
 
-type Client = {
+export type Client = {
+  id: string;
   nom: string;
   telephone: string;
   ville: string;
@@ -17,25 +19,31 @@ export default function ClientsPage() {
 
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
 
-  const [clients, setClients] = useState<Client[]>([]);
-  const [clientEnModification, setClientEnModification] = useState<number | null>(null);
+  const [clients, setClients, clientsCharges] = useLocalStorage<Client[]>(
+    "digisolaire-clients",
+    []
+  );
+  const [clientEnModification, setClientEnModification] = useState<string | null>(null);
 
   const enregistrerClient = () => {
-  const clientMisAJour: Client = {
-    nom: nom,
-    telephone: telephone,
-    ville: ville,
-  };
-
   if (clientEnModification !== null) {
-    const nouveauxClients = [...clients];
-
-    nouveauxClients[clientEnModification] = clientMisAJour;
-
-    setClients(nouveauxClients);
+    setClients(
+      clients.map((client) =>
+        client.id === clientEnModification
+          ? { ...client, nom, telephone, ville }
+          : client
+      )
+    );
     setClientEnModification(null);
   } else {
-    setClients([...clients, clientMisAJour]);
+    const nouveauClient: Client = {
+      id: crypto.randomUUID(),
+      nom: nom,
+      telephone: telephone,
+      ville: ville,
+    };
+
+    setClients([...clients, nouveauClient]);
   }
 
   setNom("");
@@ -44,14 +52,18 @@ export default function ClientsPage() {
 
   setFormulaireOuvert(false);
 };
-    const modifierClient = (index: number) => {
-  const client = clients[index];
+    const modifierClient = (id: string) => {
+  const client = clients.find((c) => c.id === id);
+
+  if (!client) {
+    return;
+  }
 
   setNom(client.nom);
   setTelephone(client.telephone);
   setVille(client.ville);
 
-  setClientEnModification(index);
+  setClientEnModification(id);
   setFormulaireOuvert(true);
 };
 
@@ -165,15 +177,21 @@ export default function ClientsPage() {
               </thead>
 
               <tbody>
-  {clients.length === 0 ? (
+  {!clientsCharges ? (
+    <tr>
+      <td className="p-4 text-gray-500" colSpan={4}>
+        Chargement des clients...
+      </td>
+    </tr>
+  ) : clients.length === 0 ? (
     <tr>
       <td className="p-4 text-gray-500" colSpan={4}>
         Aucun client enregistré.
       </td>
     </tr>
   ) : (
-    clients.map((client, index) => (
-      <tr key={index} className="border-t">
+    clients.map((client) => (
+      <tr key={client.id} className="border-t">
         <td className="p-4">
           {client.nom}
         </td>
@@ -188,7 +206,7 @@ export default function ClientsPage() {
 
         <td className="p-4 flex gap-4">
   <button
-    onClick={() => modifierClient(index)}
+    onClick={() => modifierClient(client.id)}
     className="text-blue-600 hover:underline"
   >
     Modifier
@@ -197,7 +215,7 @@ export default function ClientsPage() {
   <button
     onClick={() => {
       const nouveauxClients = clients.filter(
-        (_, i) => i !== index
+        (c) => c.id !== client.id
       );
 
       setClients(nouveauxClients);
