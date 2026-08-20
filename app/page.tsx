@@ -1,7 +1,23 @@
+"use client";
+
+import Link from "next/link";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
+import { useLocalStorage } from "../hooks/useLocalStorage";
+import type { Client } from "./clients/page";
+import type { Projet } from "./projets/page";
+import type { Dimensionnement } from "./dimensionnement/page";
+import type { Devis } from "./devis/page";
 
 export default function Home() {
+  const [clients] = useLocalStorage<Client[]>("digisolaire-clients", []);
+  const [projets] = useLocalStorage<Projet[]>("digisolaire-projets", []);
+  const [dimensionnements] = useLocalStorage<Dimensionnement[]>(
+    "digisolaire-dimensionnements",
+    []
+  );
+  const [devis] = useLocalStorage<Devis[]>("digisolaire-devis", []);
+
   return (
     <div className="flex">
       <Sidebar />
@@ -21,28 +37,39 @@ export default function Home() {
           <div className="grid grid-cols-4 gap-6 mt-10">
             <div className="bg-white rounded-xl shadow p-6">
               <h2 className="text-gray-500">Clients</h2>
-              <p className="text-3xl font-bold mt-2">0</p>
+              <p className="text-3xl font-bold mt-2">
+                {clients.length}
+              </p>
             </div>
 
             <div className="bg-white rounded-xl shadow p-6">
               <h2 className="text-gray-500">Projets</h2>
-              <p className="text-3xl font-bold mt-2">0</p>
+              <p className="text-3xl font-bold mt-2">
+                {projets.length}
+              </p>
             </div>
 
             <div className="bg-white rounded-xl shadow p-6">
               <h2 className="text-gray-500">Dimensionnements</h2>
-              <p className="text-3xl font-bold mt-2">0</p>
+              <p className="text-3xl font-bold mt-2">
+                {dimensionnements.length}
+              </p>
             </div>
 
             <div className="bg-white rounded-xl shadow p-6">
               <h2 className="text-gray-500">Devis</h2>
-              <p className="text-3xl font-bold mt-2">0</p>
+              <p className="text-3xl font-bold mt-2">
+                {devis.length}
+              </p>
             </div>
           </div>
 
-          <button className="mt-10 bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg font-semibold">
+          <Link
+            href="/projets"
+            className="mt-10 inline-block bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg font-semibold"
+          >
             + Nouveau projet
-          </button>
+          </Link>
         </div>
       </main>
     </div>

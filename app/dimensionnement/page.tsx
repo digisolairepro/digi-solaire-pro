@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
@@ -44,8 +44,8 @@ export type Dimensionnement = {
   capaciteBatterieAh: number;
 };
 
-export default function DimensionnementPage() {
-  // ==========================================
+function DimensionnementContent() {
+// ==========================================
   // INFORMATIONS DU PROJET
   // ==========================================
 
@@ -1239,5 +1239,13 @@ console.log("TOTAL KWH :", consommationKWh);
 
       </main>
     </div>
+  );
+}
+
+export default function DimensionnementPage() {
+  return (
+    <Suspense fallback={<div className="p-10">Chargement...</div>}>
+      <DimensionnementContent />
+    </Suspense>
   );
 }
