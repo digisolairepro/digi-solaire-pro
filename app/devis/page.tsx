@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
-import { useLocalStorage } from "../../hooks/useLocalStorage";
 import type { Client } from "../clients/page";
 import type { Dimensionnement } from "../dimensionnement/page";
 import type { Projet } from "../projets/page";
@@ -26,17 +25,11 @@ export type Devis = {
 const STATUTS_DEVIS = ["Brouillon", "Envoyé", "Accepté", "Refusé"];
 
 export default function DevisPage() {
-  const [devis, setDevis, devisCharges] = useLocalStorage<Devis[]>(
-    "digisolaire-devis",
-    []
-  );
-
-  const [clients] = useLocalStorage<Client[]>("digisolaire-clients", []);
-  const [dimensionnements] = useLocalStorage<Dimensionnement[]>(
-    "digisolaire-dimensionnements",
-    []
-  );
-  const [projets] = useLocalStorage<Projet[]>("digisolaire-projets", []);
+  const [devis, setDevis] = useState<Devis[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [dimensionnements, setDimensionnements] = useState<Dimensionnement[]>([]);
+  const [projets, setProjets] = useState<Projet[]>([]);
+  const [devisCharges, setDevisCharges] = useState(false);
 
   const [dimensionnementIdChoisi, setDimensionnementIdChoisi] = useState("");
   const [statut, setStatut] = useState(STATUTS_DEVIS[0]);
@@ -44,6 +37,26 @@ export default function DevisPage() {
 
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
   const [devisEnModification, setDevisEnModification] = useState<string | null>(null);
+
+  const chargerDonnees = async () => {
+    const [reponseDevis, reponseClients, reponseDimensionnements, reponseProjets] =
+      await Promise.all([
+        fetch("/api/devis"),
+        fetch("/api/clients"),
+        fetch("/api/dimensionnements"),
+        fetch("/api/projets"),
+      ]);
+
+    setDevis(await reponseDevis.json());
+    setClients(await reponseClients.json());
+    setDimensionnements(await reponseDimensionnements.json());
+    setProjets(await reponseProjets.json());
+    setDevisCharges(true);
+  };
+
+  useEffect(() => {
+    chargerDonnees();
+  }, []);
 
   const nomDuClient = (clientId: string) => {
     const client = clients.find((c) => c.id === clientId);
@@ -144,7 +157,7 @@ export default function DevisPage() {
     setFormulaireOuvert(false);
   };
 
-  const enregistrerDevis = () => {
+  const enregistrerDevis = async () => {
     if (!dimensionnementIdChoisi) {
       alert("Veuillez sélectionner un dimensionnement.");
       return;
@@ -168,32 +181,28 @@ export default function DevisPage() {
       return;
     }
 
-    if (devisEnModification !== null) {
-      setDevis(
-        devis.map((d) =>
-          d.id === devisEnModification
-            ? {
-                ...d,
-                dimensionnementId: dimensionnementIdChoisi,
-                statut,
-                lignes,
-              }
-            : d
-        )
-      );
-    } else {
-      const nouveauDevis: Devis = {
-        id: crypto.randomUUID(),
-        dimensionnementId: dimensionnementIdChoisi,
-        statut,
-        dateCreation: new Date().toISOString(),
-        lignes,
-      };
+    const donneesDevis = {
+      dimensionnementId: dimensionnementIdChoisi,
+      statut,
+      lignes,
+    };
 
-      setDevis([...devis, nouveauDevis]);
+    if (devisEnModification !== null) {
+      await fetch(`/api/devis/${devisEnModification}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(donneesDevis),
+      });
+    } else {
+      await fetch("/api/devis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(donneesDevis),
+      });
     }
 
     reinitialiserFormulaire();
+    await chargerDonnees();
   };
 
   const modifierDevis = (id: string) => {
@@ -208,6 +217,11 @@ export default function DevisPage() {
     setLignes(d.lignes);
     setDevisEnModification(id);
     setFormulaireOuvert(true);
+  };
+
+  const supprimerDevis = async (id: string) => {
+    await fetch(`/api/devis/${id}`, { method: "DELETE" });
+    await chargerDonnees();
   };
 
   const totalDe = (d: Devis) => {
@@ -473,11 +487,7 @@ export default function DevisPage() {
                           </button>
 
                           <button
-                            onClick={() => {
-                              setDevis(
-                                devis.filter((dv) => dv.id !== d.id)
-                              );
-                            }}
+                            onClick={() => supprimerDevis(d.id)}
                             className="text-red-600 hover:underline"
                           >
                             Supprimer

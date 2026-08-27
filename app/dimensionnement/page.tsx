@@ -3,7 +3,6 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
-import { useLocalStorage } from "../../hooks/useLocalStorage";
 import type { Client } from "../clients/page";
 
 export type Appareil = {
@@ -50,8 +49,14 @@ function DimensionnementContent() {
   // ==========================================
 
   const [nomProjet, setNomProjet] = useState("");
-  const [clientId, setClientId] = useState("");
-  const [clients] = useLocalStorage<Client[]>("digisolaire-clients", []);
+    const [clientId, setClientId] = useState("");
+  const [clients, setClients] = useState<Client[]>([]);
+
+  useEffect(() => {
+    fetch("/api/clients")
+      .then((reponse) => reponse.json())
+      .then((donnees) => setClients(donnees));
+  }, []);
   const [ville, setVille] = useState("");
   const [typeInstallation, setTypeInstallation] = useState("");
 
@@ -260,78 +265,51 @@ console.log("TOTAL KWH :", consommationKWh);
   // BOUTON CALCUL
   // ==========================================
 
-    const resultatsRef = useRef<HTMLDivElement>(null);
+      const resultatsRef = useRef<HTMLDivElement>(null);
 
-    const [dimensionnements, setDimensionnements] = useLocalStorage<Dimensionnement[]>("digisolaire-dimensionnements", []);
-  const calculerDimensionnement = () => {
+  const calculerDimensionnement = async () => {
     if (!clientId) {
       alert("Veuillez sélectionner un client avant d'enregistrer.");
       return;
     }
 
-        if (idModification) {
-      const dimensionnementsMisAJour = dimensionnements.map((d) =>
-        d.id === idModification
-          ? {
-              ...d,
-              dateCreation: new Date().toISOString(),
-              nomProjet,
-              clientId,
-              ville,
-              typeInstallation,
-              appareils,
-              puissancePanneau,
-              autonomie,
-              tensionBatterie,
-              dod,
-              rendementBatterie,
-              consommationTotale,
-              consommationKWh,
-              puissancePV,
-              nombrePanneaux,
-              puissancePVInstallee,
-              puissanceMaximale,
-              puissanceOnduleur,
-              energieAutonomie,
-              capaciteBatterieKWh,
-              capaciteBatterieAh,
-            }
-          : d
-      );
+    const donneesDimensionnement = {
+      nomProjet,
+      clientId,
+      ville,
+      typeInstallation,
+      appareils,
+      puissancePanneau,
+      autonomie,
+      tensionBatterie,
+      dod,
+      rendementBatterie,
+      consommationTotale,
+      consommationKWh,
+      puissancePV,
+      nombrePanneaux,
+      puissancePVInstallee,
+      puissanceMaximale,
+      puissanceOnduleur,
+      energieAutonomie,
+      capaciteBatterieKWh,
+      capaciteBatterieAh,
+    };
 
-      setDimensionnements(dimensionnementsMisAJour);
+    if (idModification) {
+      await fetch(`/api/dimensionnements/${idModification}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(donneesDimensionnement),
+      });
 
       alert("Dimensionnement mis à jour avec succès !");
     } else {
-      const nouveauDimensionnement: Dimensionnement = {
-        id: crypto.randomUUID(),
-        dateCreation: new Date().toISOString(),
-
-        nomProjet,
-        clientId,
-        ville,
-        typeInstallation,
-
-        appareils,
-        puissancePanneau,
-        autonomie,
-        tensionBatterie,
-        dod,
-        rendementBatterie,
-
-        consommationTotale,
-        consommationKWh,
-        puissancePV,
-        nombrePanneaux,
-        puissancePVInstallee,
-        puissanceMaximale,
-        puissanceOnduleur,
-        energieAutonomie,
-        capaciteBatterieKWh,
-        capaciteBatterieAh,
-      };
-
-      setDimensionnements([...dimensionnements, nouveauDimensionnement]);
+      await fetch("/api/dimensionnements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(donneesDimensionnement),
+      });
 
       alert("Dimensionnement enregistré avec succès !");
     }
@@ -342,31 +320,44 @@ console.log("TOTAL KWH :", consommationKWh);
     });
   };
 
+    useEffect(() => {
+    if (idModification) {
+      return;
+    }
+
+    setNomProjet("");
+    setClientId("");
+    setVille("");
+    setTypeInstallation("");
+    setAppareils([{ nom: "", quantite: 1, puissance: 0, heures: 0 }]);
+    setPuissancePanneau(450);
+    setAutonomie(1);
+    setTensionBatterie(48);
+    setDod(80);
+    setRendementBatterie(90);
+  }, [idModification]);
   useEffect(() => {
     if (!idModification || dejaCharge) {
       return;
     }
 
-    const dimensionnementExistant = dimensionnements.find(
-      (d) => d.id === idModification
-    );
+    fetch(`/api/dimensionnements/${idModification}`)
+      .then((reponse) => reponse.json())
+      .then((dimensionnementExistant) => {
+        setNomProjet(dimensionnementExistant.nomProjet);
+        setClientId(dimensionnementExistant.clientId);
+        setVille(dimensionnementExistant.ville);
+        setTypeInstallation(dimensionnementExistant.typeInstallation);
+        setAppareils(dimensionnementExistant.appareils);
+        setPuissancePanneau(dimensionnementExistant.puissancePanneau);
+        setAutonomie(dimensionnementExistant.autonomie);
+        setTensionBatterie(dimensionnementExistant.tensionBatterie);
+        setDod(dimensionnementExistant.dod);
+        setRendementBatterie(dimensionnementExistant.rendementBatterie);
 
-    if (dimensionnementExistant) {
-      setNomProjet(dimensionnementExistant.nomProjet);
-      setClientId(dimensionnementExistant.clientId);
-      setVille(dimensionnementExistant.ville);
-      setTypeInstallation(dimensionnementExistant.typeInstallation);
-      setAppareils(dimensionnementExistant.appareils);
-      setPuissancePanneau(dimensionnementExistant.puissancePanneau);
-      setAutonomie(dimensionnementExistant.autonomie);
-      setTensionBatterie(dimensionnementExistant.tensionBatterie);
-      setDod(dimensionnementExistant.dod);
-      setRendementBatterie(dimensionnementExistant.rendementBatterie);
-
-      setDejaCharge(true);
-    }
-  }, [idModification, dimensionnements, dejaCharge]);
-
+        setDejaCharge(true);
+      });
+  }, [idModification, dejaCharge]);
   // ==========================================
   // AFFICHAGE
   // ==========================================

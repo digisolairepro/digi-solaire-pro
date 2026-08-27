@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
-import { useLocalStorage } from "../../hooks/useLocalStorage";
 import type { Client } from "../clients/page";
 import type { Dimensionnement } from "../dimensionnement/page";
 
@@ -32,18 +31,30 @@ export default function ProjetsPage() {
   const [statut, setStatut] = useState(STATUTS[0]);
 
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
-   const [projetEnModification, setProjetEnModification] = useState<string | null>(null);
+    const [projetEnModification, setProjetEnModification] = useState<string | null>(null);
 
-  const [projets, setProjets, projetsCharges] = useLocalStorage<Projet[]>(
-    "digisolaire-projets",
-    []
-  );
+  const [projets, setProjets] = useState<Projet[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [dimensionnements, setDimensionnements] = useState<Dimensionnement[]>([]);
+  const [projetsCharges, setProjetsCharges] = useState(false);
 
-  const [clients] = useLocalStorage<Client[]>("digisolaire-clients", []);
-  const [dimensionnements] = useLocalStorage<Dimensionnement[]>(
-    "digisolaire-dimensionnements",
-    []
-  );
+  const chargerDonnees = async () => {
+    const [reponseProjets, reponseClients, reponseDimensionnements] =
+      await Promise.all([
+        fetch("/api/projets"),
+        fetch("/api/clients"),
+        fetch("/api/dimensionnements"),
+      ]);
+
+    setProjets(await reponseProjets.json());
+    setClients(await reponseClients.json());
+    setDimensionnements(await reponseDimensionnements.json());
+    setProjetsCharges(true);
+  };
+
+  useEffect(() => {
+    chargerDonnees();
+  }, []);
 
   const nomDuClient = (id: string) => {
     const client = clients.find((c) => c.id === id);
@@ -61,32 +72,28 @@ export default function ProjetsPage() {
       : "Introuvable";
   };
 
-  const enregistrerProjet = () => {
+  const enregistrerProjet = async () => {
     if (!nom || !clientId) {
       alert("Veuillez renseigner un nom de projet et sélectionner un client.");
       return;
     }
 
+    const donneesProjet = { nom, clientId, dimensionnementId, statut };
+
     if (projetEnModification !== null) {
-      setProjets(
-        projets.map((p) =>
-          p.id === projetEnModification
-            ? { ...p, nom, clientId, dimensionnementId, statut }
-            : p
-        )
-      );
+      await fetch(`/api/projets/${projetEnModification}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(donneesProjet),
+      });
+
       setProjetEnModification(null);
     } else {
-      const nouveauProjet: Projet = {
-        id: crypto.randomUUID(),
-        nom,
-        clientId,
-        dimensionnementId,
-        statut,
-        dateCreation: new Date().toISOString(),
-      };
-
-      setProjets([...projets, nouveauProjet]);
+      await fetch("/api/projets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(donneesProjet),
+      });
     }
 
     setNom("");
@@ -94,6 +101,8 @@ export default function ProjetsPage() {
     setDimensionnementId("");
     setStatut(STATUTS[0]);
     setFormulaireOuvert(false);
+
+    await chargerDonnees();
   };
 
   const modifierProjet = (id: string) => {
@@ -110,6 +119,11 @@ export default function ProjetsPage() {
 
     setProjetEnModification(id);
     setFormulaireOuvert(true);
+  };
+
+  const supprimerProjet = async (id: string) => {
+    await fetch(`/api/projets/${id}`, { method: "DELETE" });
+    await chargerDonnees();
   };
 
   return (
@@ -308,13 +322,7 @@ export default function ProjetsPage() {
                         </button>
 
                         <button
-                          onClick={() => {
-                            const nouveauxProjets = projets.filter(
-                              (p) => p.id !== projet.id
-                            );
-
-                            setProjets(nouveauxProjets);
-                          }}
+                          onClick={() => supprimerProjet(projet.id)}
                           className="text-red-600 hover:underline"
                         >
                           Supprimer

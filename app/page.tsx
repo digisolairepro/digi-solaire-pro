@@ -1,22 +1,39 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
-import { useLocalStorage } from "../hooks/useLocalStorage";
-import type { Client } from "./clients/page";
-import type { Projet } from "./projets/page";
-import type { Dimensionnement } from "./dimensionnement/page";
-import type { Devis } from "./devis/page";
 
 export default function Home() {
-  const [clients] = useLocalStorage<Client[]>("digisolaire-clients", []);
-  const [projets] = useLocalStorage<Projet[]>("digisolaire-projets", []);
-  const [dimensionnements] = useLocalStorage<Dimensionnement[]>(
-    "digisolaire-dimensionnements",
-    []
-  );
-  const [devis] = useLocalStorage<Devis[]>("digisolaire-devis", []);
+  const [nombreClients, setNombreClients] = useState(0);
+  const [nombreProjets, setNombreProjets] = useState(0);
+  const [nombreDimensionnements, setNombreDimensionnements] = useState(0);
+  const [nombreDevis, setNombreDevis] = useState(0);
+
+  useEffect(() => {
+    const chargerCompteurs = async () => {
+      const [reponseClients, reponseProjets, reponseDimensionnements, reponseDevis] =
+        await Promise.all([
+          fetch("/api/clients"),
+          fetch("/api/projets"),
+          fetch("/api/dimensionnements"),
+          fetch("/api/devis"),
+        ]);
+
+      const clients = await reponseClients.json();
+      const projets = await reponseProjets.json();
+      const dimensionnements = await reponseDimensionnements.json();
+      const devis = await reponseDevis.json();
+
+      setNombreClients(clients.length);
+      setNombreProjets(projets.length);
+      setNombreDimensionnements(dimensionnements.length);
+      setNombreDevis(devis.length);
+    };
+
+    chargerCompteurs();
+  }, []);
 
   return (
     <div className="flex">
@@ -38,28 +55,28 @@ export default function Home() {
             <div className="bg-white rounded-xl shadow p-6">
               <h2 className="text-gray-500">Clients</h2>
               <p className="text-3xl font-bold mt-2">
-                {clients.length}
+                {nombreClients}
               </p>
             </div>
 
             <div className="bg-white rounded-xl shadow p-6">
               <h2 className="text-gray-500">Projets</h2>
               <p className="text-3xl font-bold mt-2">
-                {projets.length}
+                {nombreProjets}
               </p>
             </div>
 
             <div className="bg-white rounded-xl shadow p-6">
               <h2 className="text-gray-500">Dimensionnements</h2>
               <p className="text-3xl font-bold mt-2">
-                {dimensionnements.length}
+                {nombreDimensionnements}
               </p>
             </div>
 
             <div className="bg-white rounded-xl shadow p-6">
               <h2 className="text-gray-500">Devis</h2>
               <p className="text-3xl font-bold mt-2">
-                {devis.length}
+                {nombreDevis}
               </p>
             </div>
           </div>

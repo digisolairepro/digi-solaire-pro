@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
-import { useLocalStorage } from "../../hooks/useLocalStorage";
 
 export type Client = {
   id: string;
@@ -19,53 +18,66 @@ export default function ClientsPage() {
 
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
 
-  const [clients, setClients, clientsCharges] = useLocalStorage<Client[]>(
-    "digisolaire-clients",
-    []
-  );
+  const [clients, setClients] = useState<Client[]>([]);
+  const [clientsCharges, setClientsCharges] = useState(false);
   const [clientEnModification, setClientEnModification] = useState<string | null>(null);
 
-  const enregistrerClient = () => {
-  if (clientEnModification !== null) {
-    setClients(
-      clients.map((client) =>
-        client.id === clientEnModification
-          ? { ...client, nom, telephone, ville }
-          : client
-      )
-    );
-    setClientEnModification(null);
-  } else {
-    const nouveauClient: Client = {
-      id: crypto.randomUUID(),
-      nom: nom,
-      telephone: telephone,
-      ville: ville,
-    };
+  const chargerClients = async () => {
+    const reponse = await fetch("/api/clients");
+    const donnees = await reponse.json();
 
-    setClients([...clients, nouveauClient]);
-  }
+    setClients(donnees);
+    setClientsCharges(true);
+  };
 
-  setNom("");
-  setTelephone("");
-  setVille("");
+  useEffect(() => {
+    chargerClients();
+  }, []);
 
-  setFormulaireOuvert(false);
-};
-    const modifierClient = (id: string) => {
-  const client = clients.find((c) => c.id === id);
+  const enregistrerClient = async () => {
+    if (clientEnModification !== null) {
+      await fetch(`/api/clients/${clientEnModification}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nom, telephone, ville }),
+      });
 
-  if (!client) {
-    return;
-  }
+      setClientEnModification(null);
+    } else {
+      await fetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nom, telephone, ville }),
+      });
+    }
 
-  setNom(client.nom);
-  setTelephone(client.telephone);
-  setVille(client.ville);
+    setNom("");
+    setTelephone("");
+    setVille("");
+    setFormulaireOuvert(false);
 
-  setClientEnModification(id);
-  setFormulaireOuvert(true);
-};
+    await chargerClients();
+  };
+
+  const modifierClient = (id: string) => {
+    const client = clients.find((c) => c.id === id);
+
+    if (!client) {
+      return;
+    }
+
+    setNom(client.nom);
+    setTelephone(client.telephone);
+    setVille(client.ville);
+
+    setClientEnModification(id);
+    setFormulaireOuvert(true);
+  };
+
+  const supprimerClient = async (id: string) => {
+    await fetch(`/api/clients/${id}`, { method: "DELETE" });
+    await chargerClients();
+  };
 
   return (
     <div className="flex">
@@ -93,7 +105,9 @@ export default function ClientsPage() {
             <div className="bg-white rounded-xl shadow p-6 mb-8">
 
               <h2 className="text-2xl font-bold text-gray-800 mb-6">
-                Nouveau client
+                {clientEnModification !== null
+                  ? "Modifier le client"
+                  : "Nouveau client"}
               </h2>
 
               <div className="space-y-4">
@@ -145,7 +159,13 @@ export default function ClientsPage() {
               <div className="flex gap-4 mt-6">
 
                 <button
-                  onClick={() => setFormulaireOuvert(false)}
+                  onClick={() => {
+                    setFormulaireOuvert(false);
+                    setClientEnModification(null);
+                    setNom("");
+                    setTelephone("");
+                    setVille("");
+                  }}
                   className="border px-6 py-3 rounded-lg"
                 >
                   Annuler
@@ -177,58 +197,52 @@ export default function ClientsPage() {
               </thead>
 
               <tbody>
-  {!clientsCharges ? (
-    <tr>
-      <td className="p-4 text-gray-500" colSpan={4}>
-        Chargement des clients...
-      </td>
-    </tr>
-  ) : clients.length === 0 ? (
-    <tr>
-      <td className="p-4 text-gray-500" colSpan={4}>
-        Aucun client enregistré.
-      </td>
-    </tr>
-  ) : (
-    clients.map((client) => (
-      <tr key={client.id} className="border-t">
-        <td className="p-4">
-          {client.nom}
-        </td>
+                {!clientsCharges ? (
+                  <tr>
+                    <td className="p-4 text-gray-500" colSpan={4}>
+                      Chargement des clients...
+                    </td>
+                  </tr>
+                ) : clients.length === 0 ? (
+                  <tr>
+                    <td className="p-4 text-gray-500" colSpan={4}>
+                      Aucun client enregistré.
+                    </td>
+                  </tr>
+                ) : (
+                  clients.map((client) => (
+                    <tr key={client.id} className="border-t">
+                      <td className="p-4">
+                        {client.nom}
+                      </td>
 
-        <td className="p-4">
-          {client.telephone}
-        </td>
+                      <td className="p-4">
+                        {client.telephone}
+                      </td>
 
-        <td className="p-4">
-          {client.ville}
-        </td>
+                      <td className="p-4">
+                        {client.ville}
+                      </td>
 
-        <td className="p-4 flex gap-4">
-  <button
-    onClick={() => modifierClient(client.id)}
-    className="text-blue-600 hover:underline"
-  >
-    Modifier
-  </button>
+                      <td className="p-4 flex gap-4">
+                        <button
+                          onClick={() => modifierClient(client.id)}
+                          className="text-blue-600 hover:underline"
+                        >
+                          Modifier
+                        </button>
 
-  <button
-    onClick={() => {
-      const nouveauxClients = clients.filter(
-        (c) => c.id !== client.id
-      );
-
-      setClients(nouveauxClients);
-    }}
-    className="text-red-600 hover:underline"
-  >
-    Supprimer
-  </button>
-</td>
-      </tr>
-    ))
-  )}
-</tbody>
+                        <button
+                          onClick={() => supprimerClient(client.id)}
+                          className="text-red-600 hover:underline"
+                        >
+                          Supprimer
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
 
             </table>
 

@@ -1,15 +1,31 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
-import { useLocalStorage } from "../../hooks/useLocalStorage";
 import type { Dimensionnement } from "../dimensionnement/page";
 import type { Client } from "../clients/page";
 
 export default function DimensionnementsPage() {
-   const [dimensionnements, setDimensionnements] = useLocalStorage<Dimensionnement[]>("digisolaire-dimensionnements", []);
-  const [clients] = useLocalStorage<Client[]>("digisolaire-clients", []);
+  const [dimensionnements, setDimensionnements] = useState<Dimensionnement[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [chargements, setChargements] = useState(false);
+
+  const chargerDonnees = async () => {
+    const [reponseDimensionnements, reponseClients] = await Promise.all([
+      fetch("/api/dimensionnements"),
+      fetch("/api/clients"),
+    ]);
+
+    setDimensionnements(await reponseDimensionnements.json());
+    setClients(await reponseClients.json());
+    setChargements(true);
+  };
+
+  useEffect(() => {
+    chargerDonnees();
+  }, []);
 
   const nomDuClient = (clientId: string) => {
     const client = clients.find((c) => c.id === clientId);
@@ -18,6 +34,11 @@ export default function DimensionnementsPage() {
 
   const formaterDate = (dateIso: string) => {
     return new Date(dateIso).toLocaleDateString("fr-FR");
+  };
+
+  const supprimerDimensionnement = async (id: string) => {
+    await fetch(`/api/dimensionnements/${id}`, { method: "DELETE" });
+    await chargerDonnees();
   };
 
   return (
@@ -57,7 +78,13 @@ export default function DimensionnementsPage() {
               </thead>
 
               <tbody>
-                {dimensionnements.length === 0 ? (
+                {!chargements ? (
+                  <tr>
+                    <td className="p-4 text-gray-500" colSpan={7}>
+                      Chargement des dimensionnements...
+                    </td>
+                  </tr>
+                ) : dimensionnements.length === 0 ? (
                   <tr>
                     <td className="p-4 text-gray-500" colSpan={7}>
                       Aucun dimensionnement enregistré.
@@ -90,7 +117,7 @@ export default function DimensionnementsPage() {
                         {d.nombrePanneaux}
                       </td>
 
-                                            <td className="p-4 flex gap-4">
+                      <td className="p-4 flex gap-4">
                         <Link
                           href={`/dimensionnement?id=${d.id}`}
                           className="text-blue-600 hover:underline"
@@ -99,14 +126,7 @@ export default function DimensionnementsPage() {
                         </Link>
 
                         <button
-                          onClick={() => {
-                            const nouveauxDimensionnements =
-                              dimensionnements.filter(
-                                (dim) => dim.id !== d.id
-                              );
-
-                            setDimensionnements(nouveauxDimensionnements);
-                          }}
+                          onClick={() => supprimerDimensionnement(d.id)}
                           className="text-red-600 hover:underline"
                         >
                           Supprimer
