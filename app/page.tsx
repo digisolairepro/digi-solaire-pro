@@ -42,22 +42,6 @@ export default function AccueilPage() {
               consommation réelle du foyer. Vos clients, vos projets
               et vos devis restent au même endroit.
             </p>
-
-            <div className="mt-8 flex gap-4">
-              <Link
-                href="/inscription"
-                className="px-7 py-3 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-semibold"
-              >
-                Créer un compte
-              </Link>
-
-              <Link
-                href="/connexion"
-                className="px-7 py-3 rounded-lg border border-stone-300 hover:border-stone-400 text-stone-700 font-semibold"
-              >
-                Se connecter
-              </Link>
-            </div>
           </div>
 
           <div className="flex justify-center">
