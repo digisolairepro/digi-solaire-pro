@@ -1,16 +1,23 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
+import Logo from "./Logo";
 
 export default function Sidebar() {
+  const router = useRouter();
   const [estOuvert, setEstOuvert] = useState(false);
 
   const fermerMenu = () => setEstOuvert(false);
 
+  const seDeconnecter = async () => {
+    await fetch("/api/auth/deconnexion", { method: "POST" });
+    router.push("/");
+  };
+
   return (
     <>
-      {/* Bouton hamburger — visible uniquement sur téléphone (caché à partir de md) */}
       <button
         onClick={() => setEstOuvert(!estOuvert)}
         className="md:hidden fixed top-4 left-4 z-50 bg-slate-900 text-white p-3 rounded-lg shadow-lg"
@@ -19,7 +26,6 @@ export default function Sidebar() {
         {estOuvert ? "✕" : "☰"}
       </button>
 
-      {/* Fond sombre derrière le menu quand il est ouvert sur téléphone */}
       {estOuvert && (
         <div
           onClick={fermerMenu}
@@ -29,22 +35,20 @@ export default function Sidebar() {
 
       <aside
         className={`
-          w-64 bg-slate-900 text-white min-h-screen p-6
+          w-64 bg-slate-900 text-white min-h-screen p-6 flex flex-col
           fixed inset-y-0 left-0 z-40
           transform transition-transform duration-300 ease-in-out
           ${estOuvert ? "translate-x-0" : "-translate-x-full"}
           md:relative md:translate-x-0
         `}
       >
-        <h2 className="text-2xl font-bold text-yellow-400">
-          ☀ DIGI SOLAIRE PRO
-        </h2>
+        <Logo size="sm" />
 
-        <nav className="mt-10">
+        <nav className="mt-10 flex-1">
           <ul className="space-y-4">
             <li>
               <Link
-                href="/"
+                href="/tableau-de-bord"
                 onClick={fermerMenu}
                 className="block hover:text-yellow-400"
               >
@@ -113,6 +117,13 @@ export default function Sidebar() {
             </li>
           </ul>
         </nav>
+
+        <button
+          onClick={seDeconnecter}
+          className="text-left text-red-400 hover:text-red-300 mt-6"
+        >
+          🚪 Se déconnecter
+        </button>
       </aside>
     </>
   );

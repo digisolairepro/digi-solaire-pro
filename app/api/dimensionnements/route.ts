@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "../../../lib/db";
+import { getUtilisateurIdConnecte } from "../../../lib/auth";
 
 function versDimensionnement(ligne: any) {
   return {
@@ -29,14 +30,27 @@ function versDimensionnement(ligne: any) {
 }
 
 export async function GET() {
+  const utilisateurId = await getUtilisateurIdConnecte();
+
+  if (!utilisateurId) {
+    return NextResponse.json({ erreur: "Non authentifié." }, { status: 401 });
+  }
+
   const resultat = await pool.query(
-    "SELECT * FROM dimensionnements ORDER BY date_creation DESC"
+    "SELECT * FROM dimensionnements WHERE utilisateur_id = $1 ORDER BY date_creation DESC",
+    [utilisateurId]
   );
 
   return NextResponse.json(resultat.rows.map(versDimensionnement));
 }
 
 export async function POST(request: NextRequest) {
+  const utilisateurId = await getUtilisateurIdConnecte();
+
+  if (!utilisateurId) {
+    return NextResponse.json({ erreur: "Non authentifié." }, { status: 401 });
+  }
+
   const d = await request.json();
 
   const resultat = await pool.query(
@@ -45,8 +59,8 @@ export async function POST(request: NextRequest) {
       puissance_panneau, autonomie, tension_batterie, dod, rendement_batterie,
       consommation_totale, consommation_kwh, puissance_pv, nombre_panneaux,
       puissance_pv_installee, puissance_maximale, puissance_onduleur,
-      energie_autonomie, capacite_batterie_kwh, capacite_batterie_ah
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+      energie_autonomie, capacite_batterie_kwh, capacite_batterie_ah, utilisateur_id
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
     RETURNING *`,
     [
       d.nomProjet,
@@ -69,6 +83,7 @@ export async function POST(request: NextRequest) {
       d.energieAutonomie,
       d.capaciteBatterieKWh,
       d.capaciteBatterieAh,
+      utilisateurId,
     ]
   );
 

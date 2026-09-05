@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "../../../../lib/db";
+import { getUtilisateurIdConnecte } from "../../../../lib/auth";
 
 function versDimensionnement(ligne: any) {
   return {
@@ -32,11 +33,17 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const utilisateurId = await getUtilisateurIdConnecte();
+
+  if (!utilisateurId) {
+    return NextResponse.json({ erreur: "Non authentifié." }, { status: 401 });
+  }
+
   const { id } = await params;
 
   const resultat = await pool.query(
-    "SELECT * FROM dimensionnements WHERE id = $1",
-    [id]
+    "SELECT * FROM dimensionnements WHERE id = $1 AND utilisateur_id = $2",
+    [id, utilisateurId]
   );
 
   if (resultat.rows.length === 0) {
@@ -50,6 +57,12 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const utilisateurId = await getUtilisateurIdConnecte();
+
+  if (!utilisateurId) {
+    return NextResponse.json({ erreur: "Non authentifié." }, { status: 401 });
+  }
+
   const { id } = await params;
   const d = await request.json();
 
@@ -61,7 +74,7 @@ export async function PUT(
       consommation_totale = $11, consommation_kwh = $12, puissance_pv = $13, nombre_panneaux = $14,
       puissance_pv_installee = $15, puissance_maximale = $16, puissance_onduleur = $17,
       energie_autonomie = $18, capacite_batterie_kwh = $19, capacite_batterie_ah = $20
-    WHERE id = $21
+    WHERE id = $21 AND utilisateur_id = $22
     RETURNING *`,
     [
       d.nomProjet,
@@ -85,6 +98,7 @@ export async function PUT(
       d.capaciteBatterieKWh,
       d.capaciteBatterieAh,
       id,
+      utilisateurId,
     ]
   );
 
@@ -95,9 +109,18 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const utilisateurId = await getUtilisateurIdConnecte();
+
+  if (!utilisateurId) {
+    return NextResponse.json({ erreur: "Non authentifié." }, { status: 401 });
+  }
+
   const { id } = await params;
 
-  await pool.query("DELETE FROM dimensionnements WHERE id = $1", [id]);
+  await pool.query(
+    "DELETE FROM dimensionnements WHERE id = $1 AND utilisateur_id = $2",
+    [id, utilisateurId]
+  );
 
   return NextResponse.json({ succes: true });
 }

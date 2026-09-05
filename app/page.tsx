@@ -1,94 +1,82 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import Sidebar from "../components/Sidebar";
-import Header from "../components/Header";
+import Logo from "../components/Logo";
 
-export default function Home() {
-  const [nombreClients, setNombreClients] = useState(0);
-  const [nombreProjets, setNombreProjets] = useState(0);
-  const [nombreDimensionnements, setNombreDimensionnements] = useState(0);
-  const [nombreDevis, setNombreDevis] = useState(0);
-
-  useEffect(() => {
-    const chargerCompteurs = async () => {
-      const [reponseClients, reponseProjets, reponseDimensionnements, reponseDevis] =
-        await Promise.all([
-          fetch("/api/clients"),
-          fetch("/api/projets"),
-          fetch("/api/dimensionnements"),
-          fetch("/api/devis"),
-        ]);
-
-      const clients = await reponseClients.json();
-      const projets = await reponseProjets.json();
-      const dimensionnements = await reponseDimensionnements.json();
-      const devis = await reponseDevis.json();
-
-      setNombreClients(clients.length);
-      setNombreProjets(projets.length);
-      setNombreDimensionnements(dimensionnements.length);
-      setNombreDevis(devis.length);
-    };
-
-    chargerCompteurs();
-  }, []);
-
+export default function AccueilPage() {
   return (
-    <div className="flex">
-      <Sidebar />
+    <div className="min-h-screen bg-white flex flex-col">
 
-      <main className="flex-1 bg-gray-100 min-h-screen">
-        <Header />
+      <header className="bg-slate-900 text-white">
+        <div className="max-w-6xl mx-auto px-6 py-5 flex justify-between items-center">
+          <Logo />
 
-        <div className="p-10">
-          <h1 className="text-4xl font-bold text-gray-800">
-            Bienvenue sur Digi Solaire Pro
-          </h1>
+          <div className="flex gap-3">
+            <Link
+              href="/connexion"
+              className="px-5 py-2 rounded-lg border border-white/30 hover:border-white transition"
+            >
+              Se connecter
+            </Link>
 
-          <p className="mt-4 text-lg text-gray-600">
-            Tableau de bord de la plateforme.
-          </p>
+            <Link
+              href="/inscription"
+              className="px-5 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-semibold transition"
+            >
+              Créer un compte
+            </Link>
+          </div>
+        </div>
+      </header>
 
-          <div className="grid grid-cols-4 gap-6 mt-10">
-            <div className="bg-white rounded-xl shadow p-6">
-              <h2 className="text-gray-500">Clients</h2>
-              <p className="text-3xl font-bold mt-2">
-                {nombreClients}
-              </p>
-            </div>
+      <main className="flex-1 flex items-center">
+        <div className="max-w-6xl mx-auto px-6 py-16 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
 
-            <div className="bg-white rounded-xl shadow p-6">
-              <h2 className="text-gray-500">Projets</h2>
-              <p className="text-3xl font-bold mt-2">
-                {nombreProjets}
-              </p>
-            </div>
+          <div>
+            <h1 className="text-4xl md:text-5xl font-bold text-slate-900 leading-tight">
+              Calculez la bonne taille d&apos;installation solaire,
+              pour chaque client.
+            </h1>
 
-            <div className="bg-white rounded-xl shadow p-6">
-              <h2 className="text-gray-500">Dimensionnements</h2>
-              <p className="text-3xl font-bold mt-2">
-                {nombreDimensionnements}
-              </p>
-            </div>
+            <p className="mt-6 text-lg text-stone-600">
+              DigiSolaire Pro détermine les panneaux, la batterie et
+              l&apos;onduleur qu&apos;il faut à partir de la
+              consommation réelle du foyer. Vos clients, vos projets
+              et vos devis restent au même endroit.
+            </p>
 
-            <div className="bg-white rounded-xl shadow p-6">
-              <h2 className="text-gray-500">Devis</h2>
-              <p className="text-3xl font-bold mt-2">
-                {nombreDevis}
-              </p>
+            <div className="mt-8 flex gap-4">
+              <Link
+                href="/inscription"
+                className="px-7 py-3 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-semibold"
+              >
+                Créer un compte
+              </Link>
+
+              <Link
+                href="/connexion"
+                className="px-7 py-3 rounded-lg border border-stone-300 hover:border-stone-400 text-stone-700 font-semibold"
+              >
+                Se connecter
+              </Link>
             </div>
           </div>
 
-          <Link
-            href="/projets"
-            className="mt-10 inline-block bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg font-semibold"
-          >
-            + Nouveau projet
-          </Link>
+          <div className="flex justify-center">
+            <img
+              src="/image/solaire.jpg"
+              alt="Casque de chantier et rapport technique posés sur des panneaux solaires"
+              className="w-full max-w-md rounded-lg shadow-lg object-cover"
+            />
+          </div>
+
         </div>
       </main>
+
+      <footer className="border-t border-stone-200 py-8">
+        <p className="text-center text-sm text-stone-400">
+          © 2026 DigiSolaire Pro
+        </p>
+      </footer>
+
     </div>
   );
 }
