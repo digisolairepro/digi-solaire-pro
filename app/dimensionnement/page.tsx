@@ -334,8 +334,15 @@ console.log("TOTAL KWH :", consommationKWh);
       return;
     }
 
-    const reponseEntreprise = await fetch("/api/auth/moi");
+        const reponseEntreprise = await fetch("/api/auth/moi");
     const infosEntreprise = await reponseEntreprise.json();
+
+    if (infosEntreprise.statutAbonnement !== "payant") {
+      alert(
+        "Le rapport PDF est réservé aux comptes avec un abonnement payant. Passez à l'abonnement payant pour débloquer cette fonctionnalité."
+      );
+      return;
+    }
 
     genererRapportPdf(
       {
