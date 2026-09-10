@@ -108,7 +108,7 @@ export default function Sidebar() {
 
             <li>
               <Link
-                href="#"
+                href="/parametres"
                 onClick={fermerMenu}
                 className="block hover:text-yellow-400"
               >

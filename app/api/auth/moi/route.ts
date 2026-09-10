@@ -10,7 +10,7 @@ export async function GET() {
   }
 
   const resultat = await pool.query(
-    "SELECT id, email, nom_entreprise, statut_abonnement FROM utilisateurs WHERE id = $1",
+    "SELECT id, email, nom_entreprise, statut_abonnement, telephone, adresse, ninea_rccm FROM utilisateurs WHERE id = $1",
     [utilisateurId]
   );
 
@@ -26,5 +26,8 @@ export async function GET() {
     email: u.email,
     nomEntreprise: u.nom_entreprise,
     statutAbonnement: u.statut_abonnement,
+    telephone: u.telephone || "",
+    adresse: u.adresse || "",
+    nineaRccm: u.ninea_rccm || "",
   });
 }

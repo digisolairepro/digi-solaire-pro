@@ -7,6 +7,7 @@ const CHEMINS_PROTEGES = [
   "/dimensionnement",
   "/dimensionnements",
   "/devis",
+  "/parametres",
 ];
 
 export function middleware(request: NextRequest) {
@@ -32,5 +33,6 @@ export const config = {
     "/dimensionnement/:path*",
     "/dimensionnements/:path*",
     "/devis/:path*",
+    "/parametres/:path*",
   ],
 };
