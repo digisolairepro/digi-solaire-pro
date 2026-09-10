@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import type { Client } from "../clients/page";
+import { genererRapportPdf } from "../../lib/genererRapportPdf";
 
 export type Appareil = {
   nom: string;
@@ -318,6 +319,48 @@ console.log("TOTAL KWH :", consommationKWh);
       behavior: "smooth",
       block: "start",
     });
+  };
+
+  const telechargerPdf = async () => {
+    if (!clientId) {
+      alert("Veuillez sélectionner un client avant de générer le rapport.");
+      return;
+    }
+
+    const client = clients.find((c) => c.id === clientId);
+
+    if (!client) {
+      alert("Client introuvable.");
+      return;
+    }
+
+    const reponseEntreprise = await fetch("/api/auth/moi");
+    const infosEntreprise = await reponseEntreprise.json();
+
+    genererRapportPdf(
+      {
+        nomEntreprise: infosEntreprise.nomEntreprise || "",
+        telephone: infosEntreprise.telephone || "",
+        adresse: infosEntreprise.adresse || "",
+        nineaRccm: infosEntreprise.nineaRccm || "",
+      },
+      {
+        nom: client.nom,
+        telephone: client.telephone,
+        ville: client.ville,
+      },
+      {
+        appareils,
+        consommationTotale,
+        consommationKWh,
+        puissancePV,
+        nombrePanneaux,
+        puissancePVInstallee,
+        puissanceOnduleur,
+        capaciteBatterieKWh,
+        capaciteBatterieAh,
+      }
+    );
   };
 
     useEffect(() => {
@@ -1218,13 +1261,23 @@ console.log("TOTAL KWH :", consommationKWh);
             BOUTON
         ====================================== */}
 
-                <button
-          type="button"
-          onClick={calculerDimensionnement}
-          className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-lg font-semibold text-lg"
-        >
-          💾 Enregistrer le dimensionnement
-        </button>
+                        <div className="flex gap-4">
+          <button
+            type="button"
+            onClick={calculerDimensionnement}
+            className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-lg font-semibold text-lg"
+          >
+            💾 Enregistrer le dimensionnement
+          </button>
+
+          <button
+            type="button"
+            onClick={telechargerPdf}
+            className="bg-slate-700 hover:bg-slate-800 text-white px-8 py-4 rounded-lg font-semibold text-lg"
+          >
+            📄 Télécharger le rapport PDF
+          </button>
+        </div>
 
                </div>
 
